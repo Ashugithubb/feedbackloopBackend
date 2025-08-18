@@ -2,7 +2,7 @@ import { forwardRef, Inject, Injectable, NotFoundException, UnauthorizedExceptio
 import { CreateFeedbackDto } from './dto/create-feedback.dto';
 import { UpdateFeedbackDto } from './dto/update-feedback.dto';
 import { Feedback } from './entities/feedback.entity';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Tag } from 'src/tag/entities/tag.entity';
 import { TagService } from 'src/tag/tag.service';
@@ -13,6 +13,7 @@ import { Score } from './enum/scrore.enum';
 import { isObject } from 'class-validator';
 import { Console } from 'console';
 import { Status } from './enum/status.enum';
+import { Comment } from 'src/comment/entities/comment.entity';
 
 
 @Injectable()
@@ -20,6 +21,7 @@ export class FeedbackService {
   constructor(@InjectRepository(Feedback) private readonly feedbackRepo: Repository<Feedback>,
     @InjectRepository(FeedbackTag) private readonly feedbackTagRepo: Repository<FeedbackTag>,
     private readonly tagService: TagService,
+    private readonly dataSource: DataSource,
     @Inject(forwardRef(() => UserService))
     private readonly userService: UserService) { }
 
@@ -225,8 +227,9 @@ export class FeedbackService {
       .leftJoinAndSelect('feedback.comment', "comment")
       .leftJoinAndSelect('comment.child', 'child')
       .leftJoinAndSelect('comment.userComment', 'commentedId')
-      .leftJoinAndSelect('commentedId.user', 'userName')
-
+      .leftJoin('commentedId.user', 'commentedUser')
+      
+    qb.addSelect("commentedUser.userName")
 
     qb.andWhere('feedback.status = :status', { status: 'Public' });
     if (deleted === "true") {
@@ -250,6 +253,15 @@ export class FeedbackService {
       .skip((page - 1) * limit)
       .take(limit)
       .getManyAndCount();
+
+
+  const treeRepo = await this.dataSource.getTreeRepository(Comment);
+
+  for (const fb of feedback) {
+    fb.comment = await Promise.all(
+      fb.comment.map((c) => treeRepo.findDescendantsTree(c))
+    );
+  }
     return {
       total,
       page,

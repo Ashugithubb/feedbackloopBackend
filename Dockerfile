@@ -4,10 +4,12 @@ WORKDIR /app
 
 COPY package*.json ./
 
-RUN npm install --production
+RUN npm install 
 
 COPY . .
 
 RUN npm run build
 
-CMD [ "node", "dist/main.js" ]
+CMD [ "node", "dist/main.js"]
+
+# CMD ["npm", "run", "start:dev"]
