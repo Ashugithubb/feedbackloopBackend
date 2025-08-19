@@ -43,7 +43,6 @@ export class VotesService {
     return `${voteType === 'up' ? 'Upvoted' : 'Downvoted'}`;
   }
 
- 
   if (existingVote.type === voteType) {
     await this.votesRepo.remove(existingVote);
 
@@ -56,7 +55,6 @@ export class VotesService {
     return `${voteType === 'up' ? 'Upvote removed' : 'Downvote removed'}`;
   }
 
- 
   const oldType = existingVote.type;
   existingVote.type = voteType;
   await this.votesRepo.save(existingVote);
